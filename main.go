@@ -165,7 +165,7 @@ func main() {
 		flag.Usage()
 		os.Exit(0)
 	} else if showVersion {
-		fmt.Println("motive-translator v0.0.1")
+		fmt.Println("motive-translator v0.0.2")
 		os.Exit(0)
 	} else if listLanguages {
 		languages, _ := getLanguages()
