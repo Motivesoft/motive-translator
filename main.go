@@ -51,7 +51,7 @@ func getLanguages() ([]Language, error) {
 			return nil, err
 		}
 
-		url := "https://google-translate1.p.rapidapi.com/language/translate/v2/languages"
+		url := "https://deep-translate1.p.rapidapi.com/language/translate/v2/languages"
 
 		req, _ := http.NewRequest("GET", url, nil)
 
