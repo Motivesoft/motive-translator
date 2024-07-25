@@ -15,8 +15,13 @@ type Language struct {
 	LanguageCode string `json:"language"`
 }
 
+type Translation struct {
+	TranslatedText string `json:"translatedText"`
+}
+
 type Data struct {
-	Languages []Language `json:"languages"`
+	Languages    []Language  `json:"languages"`
+	Translations Translation `json:"translations"`
 }
 
 type Response struct {
@@ -99,7 +104,14 @@ func translate(text string, from string, to string) (string, error) {
 		data = string(body)
 	}
 
-	return string(data), nil
+	var response Response
+	err := json.Unmarshal([]byte(data), &response)
+	if err != nil {
+		return "", err
+	}
+
+	// Return the array of language codes
+	return response.Data.Translations.TranslatedText, nil
 }
 
 func main() {
