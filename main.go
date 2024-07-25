@@ -28,6 +28,13 @@ type Response struct {
 	Data Data `json:"data"`
 }
 
+// Define the structure for the JSON data
+type TranslationRequest struct {
+	Q      string `json:"q"`
+	Source string `json:"source"`
+	Target string `json:"target"`
+}
+
 const spoofApiCalls = true
 
 func getLanguages() ([]Language, error) {
@@ -83,7 +90,21 @@ func translate(text string, from string, to string) (string, error) {
 
 		url := "https://deep-translate1.p.rapidapi.com/language/translate/v2"
 
-		payload := strings.NewReader("{\"q\":\"Hello World!\",\"source\":\"en\",\"target\":\"es\"}")
+		// Create an instance of the request structure so we can encode the translation query
+		request := TranslationRequest{
+			Q:      text,
+			Source: from,
+			Target: to,
+		}
+
+		// Encode the structure to JSON
+		jsonData, err := json.Marshal(request)
+		if err != nil {
+			log.Fatalf("Error encoding JSON: %v", err)
+		}
+
+		// Make the JSON string available as a reader
+		payload := strings.NewReader(string(jsonData))
 
 		req, err := http.NewRequest("POST", url, payload)
 		if err != nil {
@@ -115,6 +136,10 @@ func translate(text string, from string, to string) (string, error) {
 }
 
 func main() {
+	if spoofApiCalls {
+		println("** Developer mode. Results are spoofed **")
+	}
+
 	/* If a list of languages is requested
 	languages, _ := getLanguages()
 	for _, language := range languages {
@@ -127,12 +152,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Build a sample request
-	result, err := translate(os.Args[1], "en", "es")
+	// Build the translation request from each word on the command line
+	result, err := translate(strings.Join(os.Args[1:], " "), "en", "es")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
+
 	println(result)
 }
 
