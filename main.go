@@ -189,7 +189,7 @@ func main() {
 	}
 
 	// Build the translation request from each word on the command line
-	result, err := translate(strings.Join(flag.Args(), " "), "en", "es")
+	result, err := translate(strings.Join(flag.Args(), " "), sourceLanguage, targetLanguage)
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
