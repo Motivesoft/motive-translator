@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	flag "github.com/spf13/pflag"
 )
 
 // Define structs to match the JSON structure
@@ -35,7 +37,7 @@ type TranslationRequest struct {
 	Target string `json:"target"`
 }
 
-const spoofApiCalls = true
+const spoofApiCalls = false
 
 func getLanguages() ([]Language, error) {
 	// 'data' will contain the JSON response from the API
@@ -136,8 +138,41 @@ func translate(text string, from string, to string) (string, error) {
 }
 
 func main() {
+	// Command line:
+	// -listLanguages
+
+	var listLanguages bool
+	var showVersion bool
+	var showHelp bool
+	var sourceLanguage string
+	var targetLanguage string
+
+	//flag.String("", "", "Input text to translate")
+
+	flag.BoolVarP(&listLanguages, "listLanguages", "l", false, "List all available languages.")
+	flag.BoolVarP(&showVersion, "version", "v", false, "Show version information.")
+	flag.BoolVarP(&showHelp, "help", "h", false, "Show this help.")
+	flag.StringVarP(&sourceLanguage, "sourceLanguage", "s", "es", "Source language.")
+	flag.StringVarP(&targetLanguage, "targetLanguage", "t", "en", "Target language.")
+
+	flag.Parse()
+
 	if spoofApiCalls {
 		println("** Developer mode. Results are spoofed **")
+	}
+
+	if showHelp {
+		flag.Usage()
+		os.Exit(0)
+	} else if showVersion {
+		fmt.Println("motive-translator v0.0.1")
+		os.Exit(0)
+	} else if listLanguages {
+		languages, _ := getLanguages()
+		for _, language := range languages {
+			fmt.Println(language.LanguageCode)
+		}
+		os.Exit(0)
 	}
 
 	/* If a list of languages is requested
@@ -147,13 +182,14 @@ func main() {
 	}
 	*/
 
-	if len(os.Args) < 2 {
+	if len(flag.Args()) < 2 {
 		fmt.Println("Usage: go run main.go <text>")
+		flag.Usage()
 		os.Exit(1)
 	}
 
 	// Build the translation request from each word on the command line
-	result, err := translate(strings.Join(os.Args[1:], " "), "en", "es")
+	result, err := translate(strings.Join(flag.Args(), " "), "en", "es")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
