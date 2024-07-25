@@ -65,13 +65,31 @@ func getLanguages() ([]Language, error) {
 	return response.Data.Languages, nil
 }
 
+func translate(text string, from string, to string) (string, error) {
+	translated := from + "--" + text + "--" + to
+	return translated, nil
+}
+
 func main() {
+	/* If a list of languages is requested
 	languages, _ := getLanguages()
 	for _, language := range languages {
 		fmt.Println(language.LanguageCode)
 	}
+	*/
+
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: go run main.go <text>")
+		os.Exit(1)
+	}
 
 	// Build a sample request
+	result, err := translate(os.Args[1], "en", "es")
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+	println(result)
 }
 
 /*
