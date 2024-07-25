@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 // Define structs to match the JSON structure
@@ -58,7 +59,7 @@ func getLanguages() ([]Language, error) {
 	var response Response
 	err := json.Unmarshal([]byte(data), &response)
 	if err != nil {
-		log.Fatalf("Error parsing JSON: %v", err)
+		return nil, err
 	}
 
 	// Return the array of language codes
@@ -66,8 +67,39 @@ func getLanguages() ([]Language, error) {
 }
 
 func translate(text string, from string, to string) (string, error) {
-	translated := from + "--" + text + "--" + to
-	return translated, nil
+	var data string
+	if spoofApiCalls {
+		data = `{"data":{"translations":{"translatedText":"\u00a1Hola Mundo!"}}}`
+	} else {
+		key, err := os.ReadFile("api.key")
+		if err != nil {
+			return "", err
+		}
+
+		url := "https://deep-translate1.p.rapidapi.com/language/translate/v2"
+
+		payload := strings.NewReader("{\"q\":\"Hello World!\",\"source\":\"en\",\"target\":\"es\"}")
+
+		req, err := http.NewRequest("POST", url, payload)
+		if err != nil {
+			return "", err
+		}
+
+		req.Header.Add("x-rapidapi-key", string(key))
+		req.Header.Add("x-rapidapi-host", "deep-translate1.p.rapidapi.com")
+		req.Header.Add("Content-Type", "application/json")
+
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return "", err
+		}
+
+		defer res.Body.Close()
+		body, _ := io.ReadAll(res.Body)
+		data = string(body)
+	}
+
+	return string(data), nil
 }
 
 func main() {
