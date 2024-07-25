@@ -8,6 +8,9 @@
 *.so
 *.dylib
 
+# Key files
+api.key
+
 # Test binary, built with `go test -c`
 *.test
 
