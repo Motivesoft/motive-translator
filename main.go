@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	flag "github.com/spf13/pflag"
@@ -39,23 +40,18 @@ type TranslationRequest struct {
 
 const spoofApiCalls = false
 
-func getLanguages() ([]Language, error) {
+func getLanguages(apiKey string) ([]Language, error) {
 	// 'data' will contain the JSON response from the API
 	var data string
 
 	if spoofApiCalls {
 		data = `{"data":{"languages":[{"language":"af"},{"language":"ak"},{"language":"am"},{"language":"ar"},{"language":"as"},{"language":"ay"},{"language":"az"},{"language":"be"},{"language":"bg"},{"language":"bho"},{"language":"bm"},{"language":"bn"},{"language":"bs"},{"language":"ca"},{"language":"ceb"},{"language":"ckb"},{"language":"co"},{"language":"cs"},{"language":"cy"},{"language":"da"},{"language":"de"},{"language":"doi"},{"language":"dv"},{"language":"ee"},{"language":"el"},{"language":"en"},{"language":"eo"},{"language":"es"},{"language":"et"},{"language":"eu"},{"language":"fa"},{"language":"fi"},{"language":"fr"},{"language":"fy"},{"language":"ga"},{"language":"gd"},{"language":"gl"},{"language":"gn"},{"language":"gom"},{"language":"gu"},{"language":"ha"},{"language":"haw"},{"language":"he"},{"language":"hi"},{"language":"hmn"},{"language":"hr"},{"language":"ht"},{"language":"hu"},{"language":"hy"},{"language":"id"},{"language":"ig"},{"language":"ilo"},{"language":"is"},{"language":"it"},{"language":"iw"},{"language":"ja"},{"language":"jv"},{"language":"jw"},{"language":"ka"},{"language":"kk"},{"language":"km"},{"language":"kn"},{"language":"ko"},{"language":"kri"},{"language":"ku"},{"language":"ky"},{"language":"la"},{"language":"lb"},{"language":"lg"},{"language":"ln"},{"language":"lo"},{"language":"lt"},{"language":"lus"},{"language":"lv"},{"language":"mai"},{"language":"mg"},{"language":"mi"},{"language":"mk"},{"language":"ml"},{"language":"mn"},{"language":"mni-Mtei"},{"language":"mr"},{"language":"ms"},{"language":"mt"},{"language":"my"},{"language":"ne"},{"language":"nl"},{"language":"no"},{"language":"nso"},{"language":"ny"},{"language":"om"},{"language":"or"},{"language":"pa"},{"language":"pl"},{"language":"ps"},{"language":"pt"},{"language":"qu"},{"language":"ro"},{"language":"ru"},{"language":"rw"},{"language":"sa"},{"language":"sd"},{"language":"si"},{"language":"sk"},{"language":"sl"},{"language":"sm"},{"language":"sn"},{"language":"so"},{"language":"sq"},{"language":"sr"},{"language":"st"},{"language":"su"},{"language":"sv"},{"language":"sw"},{"language":"ta"},{"language":"te"},{"language":"tg"},{"language":"th"},{"language":"ti"},{"language":"tk"},{"language":"tl"},{"language":"tr"},{"language":"ts"},{"language":"tt"},{"language":"ug"},{"language":"uk"},{"language":"ur"},{"language":"uz"},{"language":"vi"},{"language":"xh"},{"language":"yi"},{"language":"yo"},{"language":"zh"},{"language":"zh-CN"},{"language":"zh-TW"},{"language":"zu"}]}}`
 	} else {
-		key, err := os.ReadFile("api.key")
-		if err != nil {
-			return nil, err
-		}
-
 		url := "https://deep-translate1.p.rapidapi.com/language/translate/v2/languages"
 
 		req, _ := http.NewRequest("GET", url, nil)
 
-		req.Header.Add("x-rapidapi-key", string(key))
+		req.Header.Add("x-rapidapi-key", apiKey)
 		req.Header.Add("x-rapidapi-host", "google-translate1.p.rapidapi.com")
 		req.Header.Add("Accept-Encoding", "application/gzip")
 
@@ -80,16 +76,11 @@ func getLanguages() ([]Language, error) {
 	return response.Data.Languages, nil
 }
 
-func translate(text string, from string, to string) (string, error) {
+func translate(text string, from string, to string, apiKey string) (string, error) {
 	var data string
 	if spoofApiCalls {
 		data = `{"data":{"translations":{"translatedText":"\u00a1Hola Mundo!"}}}`
 	} else {
-		key, err := os.ReadFile("api.key")
-		if err != nil {
-			return "", err
-		}
-
 		url := "https://deep-translate1.p.rapidapi.com/language/translate/v2"
 
 		// Create an instance of the request structure so we can encode the translation query
@@ -102,7 +93,7 @@ func translate(text string, from string, to string) (string, error) {
 		// Encode the structure to JSON
 		jsonData, err := json.Marshal(request)
 		if err != nil {
-			log.Fatalf("Error encoding JSON: %v", err)
+			return "", fmt.Errorf("error encoding request: %v", err)
 		}
 
 		// Make the JSON string available as a reader
@@ -113,7 +104,7 @@ func translate(text string, from string, to string) (string, error) {
 			return "", err
 		}
 
-		req.Header.Add("x-rapidapi-key", string(key))
+		req.Header.Add("x-rapidapi-key", apiKey)
 		req.Header.Add("x-rapidapi-host", "deep-translate1.p.rapidapi.com")
 		req.Header.Add("Content-Type", "application/json")
 
@@ -165,37 +156,41 @@ func main() {
 		flag.Usage()
 		os.Exit(0)
 	} else if showVersion {
-		fmt.Println("motive-translator v0.0.2")
+		fmt.Println("motive-translator v0.0.3")
 		os.Exit(0)
-	} else if listLanguages {
-		languages, _ := getLanguages()
+	}
+
+	// Everything below this point requires an api key
+	executable := os.Args[0]
+	apiKeyFile := executable[:len(executable)-len(filepath.Ext(executable))] + ".key"
+	key, err := os.ReadFile(apiKeyFile)
+	if err != nil {
+		fmt.Println("Cannot read api key:", err)
+		os.Exit(2)
+	}
+	apiKey := string(key)
+
+	if listLanguages {
+		languages, _ := getLanguages(apiKey)
 		for _, language := range languages {
 			fmt.Println(language.LanguageCode)
 		}
-		os.Exit(0)
-	}
+	} else {
+		if len(flag.Args()) < 2 {
+			fmt.Println("Usage: go run main.go <text>")
+			flag.Usage()
+			os.Exit(1)
+		}
 
-	/* If a list of languages is requested
-	languages, _ := getLanguages()
-	for _, language := range languages {
-		fmt.Println(language.LanguageCode)
-	}
-	*/
+		// Build the translation request from each word on the command line
+		result, err := translate(strings.Join(flag.Args(), " "), sourceLanguage, targetLanguage, apiKey)
+		if err != nil {
+			log.Fatal(err)
+			os.Exit(1)
+		}
 
-	if len(flag.Args()) < 2 {
-		fmt.Println("Usage: go run main.go <text>")
-		flag.Usage()
-		os.Exit(1)
+		println(result)
 	}
-
-	// Build the translation request from each word on the command line
-	result, err := translate(strings.Join(flag.Args(), " "), sourceLanguage, targetLanguage)
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
-
-	println(result)
 }
 
 /*
