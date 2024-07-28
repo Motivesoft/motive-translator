@@ -163,9 +163,15 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Everything below this point requires an api key
-	executable := os.Args[0]
+	// Everything below this point requires an api key - read one from the location of the executable
+	executable, err := os.Executable()
+	if err != nil {
+		fmt.Println("Executable location cannot be detected:", err)
+		os.Exit(2)
+	}
+
 	apiKeyFile := executable[:len(executable)-len(filepath.Ext(executable))] + ".key"
+
 	apiKey, err := getApiKey(apiKeyFile)
 	if err != nil {
 		fmt.Println("API key unavailable:", err)
