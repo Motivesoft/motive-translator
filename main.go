@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -39,6 +40,8 @@ type TranslationRequest struct {
 }
 
 const spoofApiCalls = false
+
+const versionString = "0.0.4"
 
 func getLanguages(apiKey string) ([]Language, error) {
 	// 'data' will contain the JSON response from the API
@@ -156,19 +159,18 @@ func main() {
 		flag.Usage()
 		os.Exit(0)
 	} else if showVersion {
-		fmt.Println("motive-translator v0.0.3")
+		fmt.Println("motive-translator v" + versionString)
 		os.Exit(0)
 	}
 
 	// Everything below this point requires an api key
 	executable := os.Args[0]
 	apiKeyFile := executable[:len(executable)-len(filepath.Ext(executable))] + ".key"
-	key, err := os.ReadFile(apiKeyFile)
+	apiKey, err := getApiKey(apiKeyFile)
 	if err != nil {
-		fmt.Println("Cannot read api key:", err)
+		fmt.Println("API key unavailable:", err)
 		os.Exit(2)
 	}
-	apiKey := string(key)
 
 	if listLanguages {
 		languages, _ := getLanguages(apiKey)
@@ -191,4 +193,35 @@ func main() {
 
 		println(result)
 	}
+}
+
+func getApiKey(keyFile string) (string, error) {
+	file, err := os.Open(keyFile)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	var apiKey string
+	scanner := bufio.NewScanner(file)
+
+	// Search for "RAPIDAPI_KEY=xxx"
+	for scanner.Scan() {
+		line := scanner.Text()
+		line = fmt.Sprint(line)
+
+		if strings.HasPrefix(line, "RAPIDAPI_KEY=") {
+			apiKey = strings.Split(line, "=")[1]
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+
+	if apiKey == "" {
+		return "", fmt.Errorf("keyfile does not contain an API key")
+	}
+
+	return apiKey, nil
 }
