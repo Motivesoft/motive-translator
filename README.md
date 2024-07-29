@@ -22,12 +22,19 @@ C:\Utilities\translate.key
 /use/local/bin/translate.key
 ```
 
-This file is not committed into the repository and needs to be created manually by whoever uses this.
+The key file requires an entry for a [RapidAPI](https://rapidapi.com/hub) key:
+```properties
+RAPIDAPI_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+This file is not committed into the repository and needs to be created manually and stored locally by whoever uses this.
+
 ## Usage
-Run the executable with a combination of options and text to translate.
+Run the executable with a combination of options and text to translate. Quotes around the text to translate are optional.
+
 ```shell
-translate.exe [options] text to translate
-./translate   [options] text to translate
+translate.exe [options] "text to translate"
+./translate   [options] "text to translate"
 ```
 
 Where `[options]` can be:
