@@ -184,7 +184,7 @@ func main() {
 			fmt.Println(language.LanguageCode)
 		}
 	} else {
-		if len(flag.Args()) < 2 {
+		if len(flag.Args()) < 1 {
 			fmt.Println("Usage: go run main.go <text>")
 			flag.Usage()
 			os.Exit(1)
